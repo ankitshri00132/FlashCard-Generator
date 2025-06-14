@@ -36,17 +36,28 @@ const FlashcardApp = () => {
   const generateFlashcards = async () => {
     if (!inputText.trim()) return alert("Provide text or upload a PDF.");
 
-    const sentences = inputText
-      .split(/[.?!]\s+/)
-      .filter((s) => s.length > 15)
-      .slice(0, 5);
+    try {
+      const res = await fetch("http://localhost:5000/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: inputText }),
+      });
+      console.log("Input text being sent:", inputText);
 
-    const cards = sentences.map((s) => ({
-      question: `What does the following refer to?`,
-      answer: s.trim(),
-    }));
+      const data = await res.json();
+      console.log("Received data:", data);
 
-    setFlashcards(cards);
+      if (data.flashcards && Array.isArray(data.flashcards)) {
+        setFlashcards(data.flashcards);
+      } else {
+        alert("Failed to generate flashcards.");
+      }
+    } catch (error) {
+      alert("Failed to generate flashcards.");
+      console.error(error);
+    }
   };
 
   return (
