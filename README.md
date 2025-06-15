@@ -18,6 +18,7 @@ A full-stack web application that generates **question-answer flashcards** from 
 - Generate Q&A flashcards using a locally running LLM (via Ollama)
 - Clean and responsive UI using Tailwind CSS
 - Fully local processing (no OpenAI or cloud API required)
+- Export files in the format of .json or .csv
 
 ---
 
