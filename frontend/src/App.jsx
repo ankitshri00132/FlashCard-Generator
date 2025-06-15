@@ -1,7 +1,4 @@
 import React, { useState } from "react";
-import * as pdfjsLib from "pdfjs-dist/build/pdf";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const FlashcardApp = () => {
   const [inputText, setInputText] = useState("");
@@ -9,6 +6,43 @@ const FlashcardApp = () => {
   const [pdfFileName, setPdfFileName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const exportToJSON = () => {
+    const dataStr = JSON.stringify(flashcards, null, 2);
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(
+      dataStr
+    )}`;
+    const exportFileDefaultName = "flashcards.json";
+
+    const linkElement = document.createElement("a");
+    linkElement.setAttribute("href", dataUri);
+    linkElement.setAttribute("download", exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const exportToCSV = () => {
+    const headers = ["Question", "Answer"];
+    const csvContent = [
+      headers.join(","),
+      ...flashcards.map(
+        (card) =>
+          `"${card.question.replace(/"/g, '""')}","${card.answer.replace(
+            /"/g,
+            '""'
+          )}"`
+      ),
+    ].join("\n");
+
+    const dataUri = `data:text/csv;charset=utf-8,${encodeURIComponent(
+      csvContent
+    )}`;
+    const exportFileDefaultName = "flashcards.csv";
+
+    const linkElement = document.createElement("a");
+    linkElement.setAttribute("href", dataUri);
+    linkElement.setAttribute("download", exportFileDefaultName);
+    linkElement.click();
+  };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -134,6 +168,24 @@ const FlashcardApp = () => {
         {error && (
           <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
             {error}
+          </div>
+        )}
+
+        {/* Export Buttons */}
+        {flashcards.length > 0 && (
+          <div className="flex justify-center gap-4 mb-6">
+            <button
+              onClick={exportToJSON}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-xl transition"
+            >
+              Export as JSON
+            </button>
+            <button
+              onClick={exportToCSV}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-xl transition"
+            >
+              Export as CSV
+            </button>
           </div>
         )}
 
