@@ -8,7 +8,7 @@ OLLAMA_MODEL = "llama3.2:3b"  # or any other model you pulled
 
 def generate_flashcards_from_text(text):
     prompt = f"""
-    Read the following educational content and generate 5 Q&A flashcards in JSON format like:
+    Read the following educational content and generate 10 Q&A flashcards in JSON format like:
     [{{
         "question": "What is X?",
         "answer": "X is ..."

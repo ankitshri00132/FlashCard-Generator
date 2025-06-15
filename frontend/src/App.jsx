@@ -7,34 +7,52 @@ const FlashcardApp = () => {
   const [inputText, setInputText] = useState("");
   const [flashcards, setFlashcards] = useState([]);
   const [pdfFileName, setPdfFileName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handlePDFUpload = async (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setPdfFileName(file.name); // ✅ Set file name immediately
+    // Reset states
+    setError("");
+    setPdfFileName(file.name);
+    setIsLoading(true);
 
-    const fileReader = new FileReader();
-    fileReader.onload = async function () {
-      const typedArray = new Uint8Array(this.result);
-      const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-      let text = "";
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const content = await page.getTextContent();
-        const pageText = content.items.map((item) => item.str).join(" ");
-        text += pageText + "\n";
+      const response = await fetch("http://localhost:5000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to process file");
       }
 
-      setInputText(text);
-    };
-
-    fileReader.readAsArrayBuffer(file);
+      if (data.flashcards && Array.isArray(data.flashcards)) {
+        setFlashcards(data.flashcards);
+        setInputText(""); // Clear text input when file is processed
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (error) {
+      setError(error.message);
+      console.error("File upload error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const generateFlashcards = async () => {
-    if (!inputText.trim()) return alert("Provide text or upload a PDF.");
+    if (!inputText.trim()) return alert("Provide text or upload a file.");
+
+    setError("");
+    setIsLoading(true);
 
     try {
       const res = await fetch("http://localhost:5000/api/generate", {
@@ -44,19 +62,23 @@ const FlashcardApp = () => {
         },
         body: JSON.stringify({ text: inputText }),
       });
-      console.log("Input text being sent:", inputText);
 
       const data = await res.json();
-      console.log("Received data:", data);
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate flashcards");
+      }
 
       if (data.flashcards && Array.isArray(data.flashcards)) {
         setFlashcards(data.flashcards);
       } else {
-        alert("Failed to generate flashcards.");
+        throw new Error("Invalid response format");
       }
     } catch (error) {
-      alert("Failed to generate flashcards.");
+      setError(error.message);
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -79,16 +101,16 @@ const FlashcardApp = () => {
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-4">
           <div className="flex flex-col items-center">
             <label
-              htmlFor="pdf-upload"
+              htmlFor="file-upload"
               className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-xl transition"
             >
-              Upload PDF
+              Upload File
             </label>
             <input
-              id="pdf-upload"
+              id="file-upload"
               type="file"
-              accept=".pdf"
-              onChange={handlePDFUpload}
+              accept=".pdf,.txt"
+              onChange={handleFileUpload}
               className="hidden"
             />
             {pdfFileName && (
@@ -100,11 +122,20 @@ const FlashcardApp = () => {
 
           <button
             onClick={generateFlashcards}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-xl transition"
+            disabled={isLoading}
+            className={`bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-xl transition ${
+              isLoading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            Generate Flashcards
+            {isLoading ? "Processing..." : "Generate Flashcards"}
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
 
         {/* Flashcard Output */}
         {flashcards.length > 0 && (
